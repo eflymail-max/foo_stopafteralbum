@@ -18,9 +18,11 @@ jobs:
       with:
         submodules: recursive
 
-    # 使用显式的单行参数，防止地址在云端被断行
+    # 通过定义 PowerShell 局部变量，100% 解决符号被 Actions 吞掉或断行的问题
     - name: Clone foobar2000 SDK
-      run: git clone --depth=1 "https://github.com" "../foobar2000-sdk"
+      run: |
+        $url = "https://github.com"
+        git clone --depth=1 $url ../foobar2000-sdk
       shell: powershell
 
     - name: Locate MSBuild and Solution File
