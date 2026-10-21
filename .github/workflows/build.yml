@@ -1,4 +1,4 @@
-name: Build fb2k Component (Multi-Path Align)
+name: Build fb2k Component (Pure English Multi-Path Aligned)
 
 on:
   push:
@@ -18,30 +18,25 @@ jobs:
       with:
         submodules: recursive
 
-    # 【终极路径对齐】在可能产生嵌套错层的所有父级、平级目录均映射一份 SDK 副本，彻底解决 C1083 和 MSB3202 错误
-    - name: Move SDK to Target Path
+    - name: Sync SDK Layers
       run: |
-        Write-Host "Multi-tier directory mapping for nested runner workspaces..."
+        Write-Host "Re-aligning SDK workspaces for nested solution paths..."
         
-        # 1. 映射到第一层外层 (D:\a\foobar2000-sdk)
         New-Item -ItemType Directory -Path ..\..\foobar2000-sdk -Force
         Copy-Item -Path .\foobar2000-sdk\* -Destination ..\..\foobar2000-sdk\ -Recurse -Force -ErrorAction SilentlyContinue
         
-        # 2. 映射到第二层外层 (D:\a\foo_stopafteralbum\foobar2000-sdk)
         New-Item -ItemType Directory -Path ..\foobar2000-sdk -Force
         Copy-Item -Path .\foobar2000-sdk\* -Destination ..\foobar2000-sdk\ -Recurse -Force -ErrorAction SilentlyContinue
         
-        Write-Host "All physical workspace path alignments completed."
+        Write-Host "SDK workspace alignment completed."
       shell: powershell
 
-    # 获取系统自带的最优 MSBuild 编译器
     - name: Locate MSBuild
       run: |
         $msbuildPath = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -requires Microsoft.Component.MSBuild -find MSBuild\**\Bin\MSBuild.exe | Select-Object -First 1
         echo "MSBUILD_PATH=$msbuildPath" >> $env:GITHUB_ENV
       shell: powershell
 
-    # 开始 64 位编译
     - name: Build x64 (64-bit)
       run: |
         if (Test-Path ".\foo_stopafter.sln") {
@@ -51,19 +46,16 @@ jobs:
         }
       shell: powershell
 
-    # 提取编译成功的 64 位插件 DLL 并打包
     - name: Package Component
       shell: powershell
       run: |
         New-Item -ItemType Directory -Path .\build_output -Force
         
-        # 递归扫描生成的 Release DLL 并提取
         Get-ChildItem -Recurse -Filter foo_*.dll | Where-Object { $_.FullName -like "*Release*" -and $_.FullName -notlike "*obj*" } | ForEach-Object {
             Copy-Item -Path $_.FullName -Destination .\build_output\ -Force
-            Write-Host "Captured DLL: $($_.Name)"
+            Write-Host "Captured: $($_.Name)"
         }
         
-        # 压缩生成最终插件
         Compress-Archive -Path .\build_output\* -DestinationPath .\foo_stopafter.fb2k-component -Force
 
     - name: Upload Artifact
