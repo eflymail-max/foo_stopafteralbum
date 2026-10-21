@@ -1,4 +1,4 @@
-name: Build fb2k Component (Auto Structure)
+name: Build fb2k Component (Auto Structure Pure)
 
 on:
   push:
@@ -18,31 +18,27 @@ jobs:
       with:
         submodules: recursive
 
-    # 【核心自动化步骤】用代码自动将当前的杂糅格式调整为 .sln 内部期望的平级跨目录格式
+    # 1. 自动调整目录结构（移除所有可能导致乱码的中文）
     - name: Auto Adjust Directory Structure
       run: |
-        Write-Host "开始自动调整目录结构..."
-        
-        # 1. 在根目录外层（上一级目录）创建临时的工作区子目录并移入 SDK
+        Write-Host "Starting directory structure auto-adjustment..."
         New-Item -ItemType Directory -Path ..\foobar2000-sdk -Force
         Copy-Item -Path .\foobar2000-sdk\* -Destination ..\foobar2000-sdk\ -Recurse -Force
-        
-        # 2. 验证上一级目录中 SDK 的存在性
         if (Test-Path "..\foobar2000-sdk\foobar2000\SDK\foobar2000.h") {
-            Write-Host "✅ 成功将 SDK 动态映射至期望路径: ..\foobar2000-sdk"
+            Write-Host "Success: SDK mapped to ..\foobar2000-sdk"
         } else {
-            Write-Warning "⚠️ SDK 路径映射不完整，可能导致后续头文件缺失错误。"
+            Write-Warning "Warning: SDK mapping might be incomplete."
         }
       shell: powershell
 
-    # 寻找编译环境中的最新 MSBuild 编译器
+    # 2. 寻找编译环境中的最新 MSBuild 编译器
     - name: Locate MSBuild
       run: |
         $msbuildPath = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -requires Microsoft.Component.MSBuild -find MSBuild\**\Bin\MSBuild.exe | Select-Object -First 1
         echo "MSBUILD_PATH=$msbuildPath" >> $env:GITHUB_ENV
       shell: powershell
 
-    # 自动识别并优先编译最新重命名的 foo_stopafter.sln
+    # 3. 自动编译解决方案
     - name: Build x64 (64-bit)
       run: |
         if (Test-Path ".\foo_stopafter.sln") {
@@ -52,19 +48,15 @@ jobs:
         }
       shell: powershell
 
-    # 递归提取编译生成的最终 64 位插件 DLL 并打包
+    # 4. 递归提取编译生成的最终 64 位插件 DLL 并打包
     - name: Package Component
       shell: powershell
       run: |
         New-Item -ItemType Directory -Path .\build_output -Force
-        
-        # 扫描生成的纯 64 位 Release DLL（排除临时的 obj 中转项）
         Get-ChildItem -Recurse -Filter foo_*.dll | Where-Object { $_.FullName -like "*Release*" -and $_.FullName -notlike "*obj*" } | ForEach-Object {
             Copy-Item -Path $_.FullName -Destination .\build_output\ -Force
-            Write-Host "成功捕获 64 位核心插件: $($_.Name)"
+            Write-Host "Captured core DLL: $($_.Name)"
         }
-        
-        # 生成 .fb2k-component
         Compress-Archive -Path .\build_output\* -DestinationPath .\foo_stopafter.fb2k-component -Force
 
     - name: Upload Artifact
