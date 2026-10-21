@@ -1,4 +1,4 @@
-name: Build fb2k Component (Symlink Aligned)
+name: Build fb2k Component (Symlink Fixed)
 
 on:
   push:
@@ -18,10 +18,13 @@ jobs:
       with:
         submodules: recursive
 
-    # Create a symlink to force resolve the ../foobar2000-sdk paths
-    # This guarantees that whatever deep relativity is used, MSBuild can cross reference it
+    # Safely clear old directories or broken symlinks, then inject precise symlinks
     - name: Create Workspace Symlinks
       run: |
+        Write-Host "Cleaning up potential conflicting directories..."
+        if (Test-Path "D:\a\foo_stopafteralbum\foobar2000-sdk") { Remove-Item -Path "D:\a\foo_stopafteralbum\foobar2000-sdk" -Recurse -Force -ErrorAction SilentlyContinue }
+        if (Test-Path "..\foobar2000-sdk") { Remove-Item -Path "..\foobar2000-sdk" -Recurse -Force -ErrorAction SilentlyContinue }
+        
         Write-Host "Injecting symlinks into workspace trees..."
         cmd /c "mklink /d D:\a\foo_stopafteralbum\foobar2000-sdk D:\a\foo_stopafteralbum\foo_stopafteralbum\foobar2000-sdk"
         cmd /c "mklink /d ..\foobar2000-sdk .\foobar2000-sdk"
