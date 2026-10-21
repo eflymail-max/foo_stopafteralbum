@@ -1,4 +1,4 @@
-name: Build fb2k Component (Symlink Fixed)
+name: Build fb2k Component (Symlink Forced)
 
 on:
   push:
@@ -18,12 +18,12 @@ jobs:
       with:
         submodules: recursive
 
-    # Safely clear old directories or broken symlinks, then inject precise symlinks
+    # Use cmd native rmdir to completely destroy any locked or blocking folders
     - name: Create Workspace Symlinks
       run: |
-        Write-Host "Cleaning up potential conflicting directories..."
-        if (Test-Path "D:\a\foo_stopafteralbum\foobar2000-sdk") { Remove-Item -Path "D:\a\foo_stopafteralbum\foobar2000-sdk" -Recurse -Force -ErrorAction SilentlyContinue }
-        if (Test-Path "..\foobar2000-sdk") { Remove-Item -Path "..\foobar2000-sdk" -Recurse -Force -ErrorAction SilentlyContinue }
+        Write-Host "Forcing destruction of conflicting directories..."
+        cmd /c "rmdir /s /q D:\a\foo_stopafteralbum\foobar2000-sdk 2>nul"
+        cmd /c "rmdir /s /q ..\foobar2000-sdk 2>nul"
         
         Write-Host "Injecting symlinks into workspace trees..."
         cmd /c "mklink /d D:\a\foo_stopafteralbum\foobar2000-sdk D:\a\foo_stopafteralbum\foo_stopafteralbum\foobar2000-sdk"
