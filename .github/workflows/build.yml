@@ -5,6 +5,10 @@ on:
     branches: [ "main" ]
   workflow_dispatch:
 
+# 在全局加入环境变量，允许在当前的 Node24 环境下平稳运行
+env:
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+
 jobs:
   build:
     runs-on: windows-latest
@@ -15,20 +19,17 @@ jobs:
       with:
         submodules: recursive
 
-    # 使用 vswhere 自动寻找系统中最新的 MSBuild 路径，并写入 GitHub 环境变量
     - name: Locate MSBuild
       run: |
         $msbuildPath = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -requires Microsoft.Component.MSBuild -find MSBuild\**\Bin\MSBuild.exe | Select-Object -First 1
         echo "MSBUILD_PATH=$msbuildPath" >> $env:GITHUB_ENV
       shell: powershell
 
-    # 修复点：直接在 PowerShell 内部使用 $env:MSBUILD_PATH 调用命令
     - name: Build x86 (32-bit)
       run: |
         & $env:MSBUILD_PATH your_solution.sln /p:Configuration=Release /p:Platform=x86
       shell: powershell
 
-    # 修复点：同上，请确保 your_solution.sln 改成了你仓库里实际的名字
     - name: Build x64 (64-bit)
       run: |
         & $env:MSBUILD_PATH your_solution.sln /p:Configuration=Release /p:Platform=x64
