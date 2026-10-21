@@ -27,12 +27,12 @@ jobs:
 
     - name: Build x86 (32-bit)
       run: |
-        & $env:MSBUILD_PATH your_solution.sln /p:Configuration=Release /p:Platform=x86
+        & $env:MSBUILD_PATH foo_stopafter.sln /p:Configuration=Release /p:Platform=x86
       shell: powershell
 
     - name: Build x64 (64-bit)
       run: |
-        & $env:MSBUILD_PATH your_solution.sln /p:Configuration=Release /p:Platform=x64
+        & $env:MSBUILD_PATH foo_stopafter.sln /p:Configuration=Release /p:Platform=x64
       shell: powershell
 
     - name: Package Component
