@@ -14,10 +14,19 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Clean stale build output
+      - name: Clean all stale build outputs
         shell: pwsh
         run: |
-          $paths = @("x64", "Debug", "Release", ".vs")
+          $paths = @(
+            "x64",
+            "Debug",
+            "Release",
+            ".vs",
+            "foo_stopafter\\x64",
+            "foo_stopafter\\Debug",
+            "foo_stopafter\\Release"
+          )
+
           foreach ($p in $paths) {
             if (Test-Path $p) {
               Remove-Item $p -Recurse -Force
@@ -27,14 +36,14 @@ jobs:
       - name: Remove stale SDK directory
         shell: bash
         run: |
-          if [ -d "${{ github.workspace }}/../foobar2000-sdk" ]; then
-            rm -rf "${{ github.workspace }}/../foobar2000-sdk"
+          if [ -d foobar2000-sdk ]; then
+            rm -rf foobar2000-sdk
           fi
 
-      - name: Clone SDK into parent directory
+      - name: Clone SDK into repo root
         shell: bash
         run: |
-          git clone --depth 1 https://github.com/a1waysbeta/foobar2000-sdk.git "${{ github.workspace }}/../foobar2000-sdk"
+          git clone --depth 1 https://github.com/a1waysbeta/foobar2000-sdk.git foobar2000-sdk
 
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
@@ -53,19 +62,12 @@ jobs:
           }
 
           $msbuild = Join-Path $installPath "MSBuild\Current\Bin\MSBuild.exe"
+
           if (-not (Test-Path $msbuild)) {
             throw "MSBuild.exe not found under $installPath"
           }
 
-          $solution = Join-Path $env:GITHUB_WORKSPACE "foo_stopafteralbum.sln"
-          if (-not (Test-Path $solution)) {
-            $solution = Join-Path $env:GITHUB_WORKSPACE "foo_stopafter.sln"
-          }
-          if (-not (Test-Path $solution)) {
-            throw "Solution file not found."
-          }
-
-          & $msbuild $solution /p:Configuration=Release /p:Platform=x64 /m
+          & $msbuild "foo_stopafteralbum.sln" /p:Configuration=Release /p:Platform=x64 /m
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
