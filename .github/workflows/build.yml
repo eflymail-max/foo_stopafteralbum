@@ -14,6 +14,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Clean stale build output
+        shell: pwsh
+        run: |
+          if (Test-Path "x64") { Remove-Item "x64" -Recurse -Force }
+          if (Test-Path "Debug") { Remove-Item "Debug" -Recurse -Force }
+          if (Test-Path "Release") { Remove-Item "Release" -Recurse -Force }
+
       - name: Prepare SDK directory
         shell: bash
         run: |
