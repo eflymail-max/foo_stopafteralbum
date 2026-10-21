@@ -1,4 +1,4 @@
-name: Build fb2k Component (Pure English Multi-Path Aligned)
+name: Build fb2k Component (Triple-Path Aligned)
 
 on:
   push:
@@ -20,7 +20,7 @@ jobs:
 
     - name: Sync SDK Layers
       run: |
-        Write-Host "Re-aligning SDK workspaces for nested solution paths..."
+        Write-Host "Re-aligning SDK workspaces for mixed absolute and relative depths..."
         
         New-Item -ItemType Directory -Path ..\..\foobar2000-sdk -Force
         Copy-Item -Path .\foobar2000-sdk\* -Destination ..\..\foobar2000-sdk\ -Recurse -Force -ErrorAction SilentlyContinue
@@ -28,7 +28,10 @@ jobs:
         New-Item -ItemType Directory -Path ..\foobar2000-sdk -Force
         Copy-Item -Path .\foobar2000-sdk\* -Destination ..\foobar2000-sdk\ -Recurse -Force -ErrorAction SilentlyContinue
         
-        Write-Host "SDK workspace alignment completed."
+        New-Item -ItemType Directory -Path D:\a\foo_stopafteralbum\foobar2000-sdk -Force
+        Copy-Item -Path .\foobar2000-sdk\* -Destination D:\a\foo_stopafteralbum\foobar2000-sdk\ -Recurse -Force -ErrorAction SilentlyContinue
+        
+        Write-Host "Multi-tier directory workspace synchronized successfully."
       shell: powershell
 
     - name: Locate MSBuild
@@ -53,7 +56,7 @@ jobs:
         
         Get-ChildItem -Recurse -Filter foo_*.dll | Where-Object { $_.FullName -like "*Release*" -and $_.FullName -notlike "*obj*" } | ForEach-Object {
             Copy-Item -Path $_.FullName -Destination .\build_output\ -Force
-            Write-Host "Captured: $($_.Name)"
+            Write-Host "Captured target DLL binary: $($_.Name)"
         }
         
         Compress-Archive -Path .\build_output\* -DestinationPath .\foo_stopafter.fb2k-component -Force
