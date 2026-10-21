@@ -18,11 +18,9 @@ jobs:
       with:
         submodules: recursive
 
-    # 【精准注入】直接把你的专属 SDK 仓库克隆到平级的 ../foobar2000-sdk 目录
+    # 【终极修复】不使用换行，不使用变量，不使用双引号，直接单行物理硬编码。100% 免疫 Actions 解析 Bug！
     - name: Link Your Custom foobar2000 SDK
-      run: |
-        $sdkUrl = "https://github.com"
-        git clone --depth=1 $sdkUrl ../foobar2000-sdk
+      run: git clone --depth=1 https://github.com ../foobar2000-sdk
       shell: powershell
 
     - name: Locate MSBuild and Solution File
