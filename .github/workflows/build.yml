@@ -10,13 +10,15 @@ jobs:
     runs-on: windows-latest # 使用微软官方的 Windows 云服务器
 
     steps:
+    # 1. 升级到了 checkout@v4 的最新小版本以修复 Node.js 警告
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v4.2.2 
       with:
         submodules: recursive # 如果你的源码包含SDK子模块，自动下载
 
+    # 2. 将微软的 MSBuild 插件升级到支持 Node.24 的 v3 版本
     - name: Add MSBuild to PATH
-      uses: microsoft/setup-msbuild@v2
+      uses: microsoft/setup-msbuild@v3
 
     - name: Build x86 (32-bit)
       run: msbuild your_solution.sln /p:Configuration=Release /p:Platform=x86
@@ -41,6 +43,7 @@ jobs:
         # 压缩为 zip 并重命名为 .fb2k-component
         Compress-Archive -Path .\build_output\* -DestinationPath .\my_plugin.fb2k-component
 
+    # 3. 顺便确保上传文件的 action 也是最新安全的 v4
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
