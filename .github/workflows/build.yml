@@ -21,17 +21,17 @@ jobs:
           if (Test-Path "Debug") { Remove-Item "Debug" -Recurse -Force }
           if (Test-Path "Release") { Remove-Item "Release" -Recurse -Force }
 
-      - name: Prepare sibling SDK directory
+      - name: Prepare SDK directory
         shell: bash
         run: |
-          if [ -d ../foobar2000-sdk ]; then
-            rm -rf ../foobar2000-sdk
+          if [ -d foobar2000-sdk ]; then
+            rm -rf foobar2000-sdk
           fi
 
-      - name: Clone foobar2000 SDK next to the repo
+      - name: Clone foobar2000 SDK into repo root
         shell: bash
         run: |
-          git clone --depth 1 https://github.com/a1waysbeta/foobar2000-sdk.git ../foobar2000-sdk
+          git clone --depth 1 https://github.com/a1waysbeta/foobar2000-sdk.git foobar2000-sdk
 
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
