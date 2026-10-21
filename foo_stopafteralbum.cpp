@@ -14,10 +14,8 @@ DECLARE_COMPONENT_VERSION(
 
 VALIDATE_COMPONENT_FILENAME("foo_stopafteralbum.dll");
 
-pfc::string8 tracknumber;
-int tracknumber2;
-pfc::string8 totaltracks;
-int totaltracks2;
+pfc::string8 stopafter;
+int stopafter2;
 
 static constexpr GUID g_guid_main_stopafteralbum_toggle = { 0x92d2cf2e, 0xad1e, 0x4121, { 0x87, 0x52, 0xc3, 0xe1, 0x4d, 0xdc, 0x80, 0x74 } };
 
@@ -49,7 +47,7 @@ class mainmenu_mycommands : public mainmenu_commands {
 			cfg_menu_stopalbum_enabled = !cfg_menu_stopalbum_enabled;
 			if (cfg_menu_stopalbum_enabled)
 			{
-				if ((totaltracks2 == tracknumber2) && (pfc::string_is_numeric(tracknumber) || pfc::string_is_numeric(totaltracks)) && (static_api_ptr_t<playback_control>()->is_paused() || static_api_ptr_t<playback_control>()->is_playing()))
+				if (stopafter2 == 1 && pfc::string_is_numeric(stopafter))
 				{
 					static_api_ptr_t<playback_control>()->set_stop_after_current(true);
 					console::info("Stop after album");
@@ -97,14 +95,10 @@ public:
 	{
 		if (cfg_menu_stopalbum_enabled) {
 			titleformat_object::ptr titleformat;
-			titleformat_compiler::get()->compile_safe_ex(titleformat, "%tracknumber%", "<ERROR>");
-			p_track->format_title(nullptr, tracknumber, titleformat, nullptr);
-			titleformat_object::ptr titleformat2;
-			titleformat_compiler::get()->compile_safe_ex(titleformat2, "%totaltracks%", "<ERROR>");
-			p_track->format_title(nullptr, totaltracks, titleformat2, nullptr);
-			tracknumber2 = atoi(tracknumber);
-			totaltracks2 = atoi(totaltracks);
-			if (tracknumber2 == totaltracks2 && (pfc::string_is_numeric(tracknumber) || pfc::string_is_numeric(totaltracks)))
+			titleformat_compiler::get()->compile_safe_ex(titleformat, "%STOPAFTER%", "<ERROR>");
+			p_track->format_title(nullptr, stopafter, titleformat, nullptr);
+			stopafter2 = atoi(stopafter);
+			if (stopafter2 == 1 && pfc::string_is_numeric(stopafter))
 			{
 				static_api_ptr_t<playback_control>()->set_stop_after_current(true);
 				console::info("Stop after album");
