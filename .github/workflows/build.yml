@@ -14,36 +14,27 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Clean all stale build outputs
+      - name: Clean stale build outputs
         shell: pwsh
         run: |
-          $paths = @(
-            "x64",
-            "Debug",
-            "Release",
-            ".vs",
-            "foo_stopafter\\x64",
-            "foo_stopafter\\Debug",
-            "foo_stopafter\\Release"
-          )
-
+          $paths = @("x64", "Debug", "Release", ".vs", "foo_stopafter\x64", "foo_stopafter\Debug", "foo_stopafter\Release")
           foreach ($p in $paths) {
             if (Test-Path $p) {
               Remove-Item $p -Recurse -Force
             }
           }
 
-      - name: Remove stale SDK directory
+      - name: Remove old SDK if exists
         shell: bash
         run: |
-          if [ -d foobar2000-sdk ]; then
-            rm -rf foobar2000-sdk
+          if [ -d ../foobar2000-sdk ]; then
+            rm -rf ../foobar2000-sdk
           fi
 
-      - name: Clone SDK into repo root
+      - name: Clone SDK alongside the repo
         shell: bash
         run: |
-          git clone --depth 1 https://github.com/a1waysbeta/foobar2000-sdk.git foobar2000-sdk
+          git clone --depth 1 https://github.com/a1waysbeta/foobar2000-sdk.git ../foobar2000-sdk
 
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
@@ -69,7 +60,7 @@ jobs:
 
           & $msbuild "foo_stopafteralbum.sln" /p:Configuration=Release /p:Platform=x64 /m
 
-      - name: Upload build artifact
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: foo_stopafter-x64
