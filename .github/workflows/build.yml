@@ -1,4 +1,4 @@
-name: Build fb2k Component (Absolute Tree Sync)
+name: Build fb2k Component (Root Path Sync)
 
 on:
   push:
@@ -20,14 +20,13 @@ jobs:
 
     - name: Sync SDK Layers
       run: |
-        New-Item -ItemType Directory -Path D:\a\foo_stopafteralbum\foobar2000-sdk -Force
-        Copy-Item -Path .\foobar2000-sdk\* -Destination D:\a\foo_stopafteralbum\foobar2000-sdk\ -Recurse -Force -ErrorAction SilentlyContinue
+        Write-Host "Syncing SDK directory up to the primary absolute runner root..."
         
-        New-Item -ItemType Directory -Path ..\foobar2000-sdk -Force
-        Copy-Item -Path .\foobar2000-sdk\* -Destination ..\foobar2000-sdk\ -Recurse -Force -ErrorAction SilentlyContinue
-
-        New-Item -ItemType Directory -Path ..\..\foobar2000-sdk -Force
-        Copy-Item -Path .\foobar2000-sdk\* -Destination ..\..\foobar2000-sdk\ -Recurse -Force -ErrorAction SilentlyContinue
+        $targetRoot = "D:\a\foo_stopafteralbum\foobar2000-sdk"
+        New-Item -ItemType Directory -Path $targetRoot -Force
+        Copy-Item -Path .\foobar2000-sdk\* -Destination $targetRoot -Recurse -Force -ErrorAction SilentlyContinue
+        
+        Write-Host "Primary absolute mapping applied."
       shell: powershell
 
     - name: Locate MSBuild
