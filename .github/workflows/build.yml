@@ -18,11 +18,11 @@ jobs:
       with:
         submodules: recursive
 
-    - name: Download foobar2000 SDK
+    # 【修复点】放弃直接请求官网，改用极速且稳定的 GitHub Git 方式直接拉取全套 SDK
+    - name: Clone foobar2000 SDK
       run: |
-        New-Item -ItemType Directory -Path ..\foobar2000-sdk -Force
-        Invoke-WebRequest -Uri "https://foobar2000.org" -OutFile ..\sdk.zip
-        Expand-Archive -Path ..\sdk.zip -DestinationPath ..\foobar2000-sdk -Force
+        git clone https://github.com ../foobar2000-sdk
+        Write-Host "foobar2000 SDK 依赖项已在平级目录克隆完成"
       shell: powershell
 
     - name: Locate MSBuild and Solution File
@@ -39,29 +39,25 @@ jobs:
         }
       shell: powershell
 
-    # 移除了 32 位编译，直接进行 64 位编译
     - name: Build x64 (64-bit)
       run: |
         & $env:MSBUILD_PATH $env:SLN_FILE /p:Configuration=Release /p:Platform=x64
       shell: powershell
 
-    # 针对纯 64 位重新调整了打包结构
     - name: Package Component
       shell: powershell
       run: |
         New-Item -ItemType Directory -Path .\build_output -Force
         
-        # 兼容处理：检查 64 位生成的 DLL 所在位置并复制到打包根目录
+        # 兼容性检查和文件复制
         if (Test-Path ".\x64\Release\foo_*.dll") {
             Copy-Item -Path ".\x64\Release\foo_*.dll" -Destination .\build_output\
         } elseif (Test-Path ".\Release\foo_*.dll") {
-            # 有些项目配置虽然平台选了x64，但输出路径直接叫 Release
             Copy-Item -Path ".\Release\foo_*.dll" -Destination .\build_output\
         } else {
             Write-Warning "未在预期目录中找到编译好的 64 位 DLL 文件！"
         }
         
-        # 压缩并重命名为插件文件
         Compress-Archive -Path .\build_output\* -DestinationPath .\my_plugin.fb2k-component -Force
 
     - name: Upload Artifact
