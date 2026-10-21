@@ -18,11 +18,11 @@ jobs:
       with:
         submodules: recursive
 
-    # 通过定义 PowerShell 局部变量，100% 解决符号被 Actions 吞掉或断行的问题
-    - name: Clone foobar2000 SDK
+    # 【精准注入】直接把你的专属 SDK 仓库克隆到平级的 ../foobar2000-sdk 目录
+    - name: Link Your Custom foobar2000 SDK
       run: |
-        $url = "https://github.com"
-        git clone --depth=1 $url ../foobar2000-sdk
+        $sdkUrl = "https://github.com"
+        git clone --depth=1 $sdkUrl ../foobar2000-sdk
       shell: powershell
 
     - name: Locate MSBuild and Solution File
