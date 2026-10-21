@@ -17,9 +17,12 @@ jobs:
       - name: Clean stale build output
         shell: pwsh
         run: |
-          if (Test-Path "x64") { Remove-Item "x64" -Recurse -Force }
-          if (Test-Path "Debug") { Remove-Item "Debug" -Recurse -Force }
-          if (Test-Path "Release") { Remove-Item "Release" -Recurse -Force }
+          $paths = @("x64", "Debug", "Release", ".vs")
+          foreach ($p in $paths) {
+            if (Test-Path $p) {
+              Remove-Item $p -Recurse -Force
+            }
+          }
 
       - name: Remove stale SDK directory
         shell: bash
