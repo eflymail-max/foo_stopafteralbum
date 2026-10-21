@@ -27,14 +27,14 @@ jobs:
       - name: Remove stale SDK directory
         shell: bash
         run: |
-          if [ -d foobar2000-sdk ]; then
-            rm -rf foobar2000-sdk
+          if [ -d "${{ github.workspace }}/../foobar2000-sdk" ]; then
+            rm -rf "${{ github.workspace }}/../foobar2000-sdk"
           fi
 
-      - name: Clone SDK into repo root
+      - name: Clone SDK into parent directory
         shell: bash
         run: |
-          git clone --depth 1 https://github.com/a1waysbeta/foobar2000-sdk.git foobar2000-sdk
+          git clone --depth 1 https://github.com/a1waysbeta/foobar2000-sdk.git "${{ github.workspace }}/../foobar2000-sdk"
 
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
@@ -53,12 +53,19 @@ jobs:
           }
 
           $msbuild = Join-Path $installPath "MSBuild\Current\Bin\MSBuild.exe"
-
           if (-not (Test-Path $msbuild)) {
             throw "MSBuild.exe not found under $installPath"
           }
 
-          & $msbuild "foo_stopafter.sln" /p:Configuration=Release /p:Platform=x64 /m
+          $solution = Join-Path $env:GITHUB_WORKSPACE "foo_stopafteralbum.sln"
+          if (-not (Test-Path $solution)) {
+            $solution = Join-Path $env:GITHUB_WORKSPACE "foo_stopafter.sln"
+          }
+          if (-not (Test-Path $solution)) {
+            throw "Solution file not found."
+          }
+
+          & $msbuild $solution /p:Configuration=Release /p:Platform=x64 /m
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
