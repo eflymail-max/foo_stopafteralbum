@@ -1,11 +1,10 @@
-name: Build fb2k Component
+name: Build fb2k Component (x64 Only)
 
 on:
   push:
     branches: [ "main" ]
   workflow_dispatch:
 
-# 在全局加入环境变量，允许在当前的 Node24 环境下平稳运行
 env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
@@ -19,29 +18,50 @@ jobs:
       with:
         submodules: recursive
 
-    - name: Locate MSBuild
+    - name: Download foobar2000 SDK
+      run: |
+        New-Item -ItemType Directory -Path ..\foobar2000-sdk -Force
+        Invoke-WebRequest -Uri "https://foobar2000.org" -OutFile ..\sdk.zip
+        Expand-Archive -Path ..\sdk.zip -DestinationPath ..\foobar2000-sdk -Force
+      shell: powershell
+
+    - name: Locate MSBuild and Solution File
       run: |
         $msbuildPath = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -requires Microsoft.Component.MSBuild -find MSBuild\**\Bin\MSBuild.exe | Select-Object -First 1
         echo "MSBUILD_PATH=$msbuildPath" >> $env:GITHUB_ENV
+        
+        $slnFile = Get-ChildItem -Filter *.sln | Select-Object -First 1
+        if ($slnFile) {
+            echo "SLN_FILE=$($slnFile.Name)" >> $env:GITHUB_ENV
+        } else {
+            Write-Error "错误：在仓库根目录下没有找到任何 .sln 文件！"
+            exit 1
+        }
       shell: powershell
 
-    - name: Build x86 (32-bit)
-      run: |
-        & $env:MSBUILD_PATH foo_stopafter.sln /p:Configuration=Release /p:Platform=x86
-      shell: powershell
-
+    # 移除了 32 位编译，直接进行 64 位编译
     - name: Build x64 (64-bit)
       run: |
-        & $env:MSBUILD_PATH foo_stopafter.sln /p:Configuration=Release /p:Platform=x64
+        & $env:MSBUILD_PATH $env:SLN_FILE /p:Configuration=Release /p:Platform=x64
       shell: powershell
 
+    # 针对纯 64 位重新调整了打包结构
     - name: Package Component
       shell: powershell
       run: |
         New-Item -ItemType Directory -Path .\build_output -Force
-        Copy-Item -Path ".\Release\foo_*.dll" -Destination .\build_output\ -ErrorAction SilentlyContinue
-        New-Item -ItemType Directory -Path .\build_output\x64 -Force
-        Copy-Item -Path ".\x64\Release\foo_*.dll" -Destination .\build_output\x64\ -ErrorAction SilentlyContinue
+        
+        # 兼容处理：检查 64 位生成的 DLL 所在位置并复制到打包根目录
+        if (Test-Path ".\x64\Release\foo_*.dll") {
+            Copy-Item -Path ".\x64\Release\foo_*.dll" -Destination .\build_output\
+        } elseif (Test-Path ".\Release\foo_*.dll") {
+            # 有些项目配置虽然平台选了x64，但输出路径直接叫 Release
+            Copy-Item -Path ".\Release\foo_*.dll" -Destination .\build_output\
+        } else {
+            Write-Warning "未在预期目录中找到编译好的 64 位 DLL 文件！"
+        }
+        
+        # 压缩并重命名为插件文件
         Compress-Archive -Path .\build_output\* -DestinationPath .\my_plugin.fb2k-component -Force
 
     - name: Upload Artifact
