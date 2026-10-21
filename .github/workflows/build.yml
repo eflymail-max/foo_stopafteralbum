@@ -15,29 +15,31 @@ jobs:
       with:
         submodules: recursive
 
-    # 【替换方案】不用 microsoft/setup-msbuild 插件，直接用命令行寻找当前系统自带的 MSBuild
+    # 使用 vswhere 自动寻找系统中最新的 MSBuild 路径，并写入 GitHub 环境变量
     - name: Locate MSBuild
       run: |
         $msbuildPath = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -requires Microsoft.Component.MSBuild -find MSBuild\**\Bin\MSBuild.exe | Select-Object -First 1
         echo "MSBUILD_PATH=$msbuildPath" >> $env:GITHUB_ENV
       shell: powershell
 
+    # 修复点：直接在 PowerShell 内部使用 $env:MSBUILD_PATH 调用命令
     - name: Build x86 (32-bit)
       run: |
-        & "${{ env:MSBUILD_PATH }}" your_solution.sln /p:Configuration=Release /p:Platform=x86
+        & $env:MSBUILD_PATH your_solution.sln /p:Configuration=Release /p:Platform=x86
       shell: powershell
 
+    # 修复点：同上，请确保 your_solution.sln 改成了你仓库里实际的名字
     - name: Build x64 (64-bit)
       run: |
-        & "${{ env:MSBUILD_PATH }}" your_solution.sln /p:Configuration=Release /p:Platform=x64
+        & $env:MSBUILD_PATH your_solution.sln /p:Configuration=Release /p:Platform=x64
       shell: powershell
 
     - name: Package Component
       shell: powershell
       run: |
-        New-Item -ItemType Directory -Path .\build_output
+        New-Item -ItemType Directory -Path .\build_output -Force
         Copy-Item -Path ".\Release\foo_*.dll" -Destination .\build_output\ -ErrorAction SilentlyContinue
-        New-Item -ItemType Directory -Path .\build_output\x64 -ErrorAction SilentlyContinue
+        New-Item -ItemType Directory -Path .\build_output\x64 -Force
         Copy-Item -Path ".\x64\Release\foo_*.dll" -Destination .\build_output\x64\ -ErrorAction SilentlyContinue
         Compress-Archive -Path .\build_output\* -DestinationPath .\my_plugin.fb2k-component -Force
 
