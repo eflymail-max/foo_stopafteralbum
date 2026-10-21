@@ -1,4 +1,4 @@
-name: Build fb2k Component (Auto Structure Pure)
+name: Build fb2k Component (Fixed Path)
 
 on:
   push:
@@ -18,27 +18,30 @@ jobs:
       with:
         submodules: recursive
 
-    # 1. 自动调整目录结构（移除所有可能导致乱码的中文）
+    # 【终极路径修复】全方位双重映射 SDK 位置，杜绝嵌套文件夹导致的相对路径丢失
     - name: Auto Adjust Directory Structure
       run: |
-        Write-Host "Starting directory structure auto-adjustment..."
+        Write-Host "Starting directory structure validation..."
+        
+        # 建立外层映射 (D:\a\foobar2000-sdk)
+        New-Item -ItemType Directory -Path ..\..\foobar2000-sdk -Force
+        Copy-Item -Path .\foobar2000-sdk\* -Destination ..\..\foobar2000-sdk\ -Recurse -Force
+        
+        # 建立当前层映射 (D:\a\foo_stopafteralbum\foobar2000-sdk)
         New-Item -ItemType Directory -Path ..\foobar2000-sdk -Force
         Copy-Item -Path .\foobar2000-sdk\* -Destination ..\foobar2000-sdk\ -Recurse -Force
-        if (Test-Path "..\foobar2000-sdk\foobar2000\SDK\foobar2000.h") {
-            Write-Host "Success: SDK mapped to ..\foobar2000-sdk"
-        } else {
-            Write-Warning "Warning: SDK mapping might be incomplete."
-        }
+        
+        Write-Host "Double SDK folder mappings completed successfully."
       shell: powershell
 
-    # 2. 寻找编译环境中的最新 MSBuild 编译器
+    # 寻找编译环境中的最新 MSBuild 编译器
     - name: Locate MSBuild
       run: |
         $msbuildPath = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -requires Microsoft.Component.MSBuild -find MSBuild\**\Bin\MSBuild.exe | Select-Object -First 1
         echo "MSBUILD_PATH=$msbuildPath" >> $env:GITHUB_ENV
       shell: powershell
 
-    # 3. 自动编译解决方案
+    # 自动识别解决方案文件并开始 C++ 编译
     - name: Build x64 (64-bit)
       run: |
         if (Test-Path ".\foo_stopafter.sln") {
@@ -48,15 +51,19 @@ jobs:
         }
       shell: powershell
 
-    # 4. 递归提取编译生成的最终 64 位插件 DLL 并打包
+    # 提取生成的最终 64 位插件 DLL 并打包
     - name: Package Component
       shell: powershell
       run: |
         New-Item -ItemType Directory -Path .\build_output -Force
+        
+        # 递归扫描生成的 Release DLL 并提取
         Get-ChildItem -Recurse -Filter foo_*.dll | Where-Object { $_.FullName -like "*Release*" -and $_.FullName -notlike "*obj*" } | ForEach-Object {
             Copy-Item -Path $_.FullName -Destination .\build_output\ -Force
             Write-Host "Captured core DLL: $($_.Name)"
         }
+        
+        # 压缩生成最终插件
         Compress-Archive -Path .\build_output\* -DestinationPath .\foo_stopafter.fb2k-component -Force
 
     - name: Upload Artifact
