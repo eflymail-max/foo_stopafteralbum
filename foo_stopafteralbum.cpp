@@ -12,7 +12,7 @@ DECLARE_COMPONENT_VERSION(
 	"Build: " __TIME__ ", " __DATE__
 );
 
-VALIDATE_COMPONENT_FILENAME("foo_stopafteralbum.dll");
+VALIDATE_COMPONENT_FILENAME("foo_stopafter.dll");
 
 pfc::string8 stopafter;
 int stopafter2;
