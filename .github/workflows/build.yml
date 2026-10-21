@@ -18,11 +18,9 @@ jobs:
       with:
         submodules: recursive
 
-    # 【修复点】放弃直接请求官网，改用极速且稳定的 GitHub Git 方式直接拉取全套 SDK
+    # 使用显式的单行参数，防止地址在云端被断行
     - name: Clone foobar2000 SDK
-      run: |
-        git clone https://github.com ../foobar2000-sdk
-        Write-Host "foobar2000 SDK 依赖项已在平级目录克隆完成"
+      run: git clone --depth=1 "https://github.com" "../foobar2000-sdk"
       shell: powershell
 
     - name: Locate MSBuild and Solution File
@@ -49,7 +47,6 @@ jobs:
       run: |
         New-Item -ItemType Directory -Path .\build_output -Force
         
-        # 兼容性检查和文件复制
         if (Test-Path ".\x64\Release\foo_*.dll") {
             Copy-Item -Path ".\x64\Release\foo_*.dll" -Destination .\build_output\
         } elseif (Test-Path ".\Release\foo_*.dll") {
