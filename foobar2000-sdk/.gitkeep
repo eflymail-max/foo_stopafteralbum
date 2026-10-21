@@ -1,0 +1,6 @@
+# Directory layout note
+# This repository expects a sibling foobar2000-sdk directory to exist next to the repo root when building on Windows.
+# Example:
+#   ../foobar2000-sdk/
+#     foobar2000/
+#     pfc/
