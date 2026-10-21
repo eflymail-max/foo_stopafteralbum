@@ -1,4 +1,4 @@
-name: Build fb2k Component (x64 Only)
+name: Build fb2k Component (Auto Structure)
 
 on:
   push:
@@ -18,47 +18,57 @@ jobs:
       with:
         submodules: recursive
 
-    # 【终极修复】不使用换行，不使用变量，不使用双引号，直接单行物理硬编码。100% 免疫 Actions 解析 Bug！
-    - name: Link Your Custom foobar2000 SDK
-      run: git clone --depth=1 https://github.com ../foobar2000-sdk
-      shell: powershell
-
-    - name: Locate MSBuild and Solution File
+    # 【核心自动化步骤】用代码自动将当前的杂糅格式调整为 .sln 内部期望的平级跨目录格式
+    - name: Auto Adjust Directory Structure
       run: |
-        $msbuildPath = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -requires Microsoft.Component.MSBuild -find MSBuild\**\Bin\MSBuild.exe | Select-Object -First 1
-        echo "MSBUILD_PATH=$msbuildPath" >> $env:GITHUB_ENV
+        Write-Host "开始自动调整目录结构..."
         
-        $slnFile = Get-ChildItem -Filter *.sln | Select-Object -First 1
-        if ($slnFile) {
-            echo "SLN_FILE=$($slnFile.Name)" >> $env:GITHUB_ENV
+        # 1. 在根目录外层（上一级目录）创建临时的工作区子目录并移入 SDK
+        New-Item -ItemType Directory -Path ..\foobar2000-sdk -Force
+        Copy-Item -Path .\foobar2000-sdk\* -Destination ..\foobar2000-sdk\ -Recurse -Force
+        
+        # 2. 验证上一级目录中 SDK 的存在性
+        if (Test-Path "..\foobar2000-sdk\foobar2000\SDK\foobar2000.h") {
+            Write-Host "✅ 成功将 SDK 动态映射至期望路径: ..\foobar2000-sdk"
         } else {
-            Write-Error "错误：在仓库根目录下没有找到任何 .sln 文件！"
-            exit 1
+            Write-Warning "⚠️ SDK 路径映射不完整，可能导致后续头文件缺失错误。"
         }
       shell: powershell
 
-    - name: Build x64 (64-bit)
+    # 寻找编译环境中的最新 MSBuild 编译器
+    - name: Locate MSBuild
       run: |
-        & $env:MSBUILD_PATH $env:SLN_FILE /p:Configuration=Release /p:Platform=x64
+        $msbuildPath = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -requires Microsoft.Component.MSBuild -find MSBuild\**\Bin\MSBuild.exe | Select-Object -First 1
+        echo "MSBUILD_PATH=$msbuildPath" >> $env:GITHUB_ENV
       shell: powershell
 
+    # 自动识别并优先编译最新重命名的 foo_stopafter.sln
+    - name: Build x64 (64-bit)
+      run: |
+        if (Test-Path ".\foo_stopafter.sln") {
+            & $env:MSBUILD_PATH .\foo_stopafter.sln /p:Configuration=Release /p:Platform=x64
+        } else {
+            & $env:MSBUILD_PATH .\foo_stopafteralbum.sln /p:Configuration=Release /p:Platform=x64
+        }
+      shell: powershell
+
+    # 递归提取编译生成的最终 64 位插件 DLL 并打包
     - name: Package Component
       shell: powershell
       run: |
         New-Item -ItemType Directory -Path .\build_output -Force
         
-        if (Test-Path ".\x64\Release\foo_*.dll") {
-            Copy-Item -Path ".\x64\Release\foo_*.dll" -Destination .\build_output\
-        } elseif (Test-Path ".\Release\foo_*.dll") {
-            Copy-Item -Path ".\Release\foo_*.dll" -Destination .\build_output\
-        } else {
-            Write-Warning "未在预期目录中找到编译好的 64 位 DLL 文件！"
+        # 扫描生成的纯 64 位 Release DLL（排除临时的 obj 中转项）
+        Get-ChildItem -Recurse -Filter foo_*.dll | Where-Object { $_.FullName -like "*Release*" -and $_.FullName -notlike "*obj*" } | ForEach-Object {
+            Copy-Item -Path $_.FullName -Destination .\build_output\ -Force
+            Write-Host "成功捕获 64 位核心插件: $($_.Name)"
         }
         
-        Compress-Archive -Path .\build_output\* -DestinationPath .\my_plugin.fb2k-component -Force
+        # 生成 .fb2k-component
+        Compress-Archive -Path .\build_output\* -DestinationPath .\foo_stopafter.fb2k-component -Force
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
         name: fb2k-component-file
-        path: .\my_plugin.fb2k-component
+        path: .\foo_stopafter.fb2k-component
