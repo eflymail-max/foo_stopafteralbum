@@ -1,0 +1,48 @@
+name: Build fb2k Component
+
+on:
+  push:
+    branches: [ "main" ] # 当你提交代码到 main 分支时自动触发编译
+  workflow_dispatch: # 允许你在网页上点击按钮手动触发编译
+
+jobs:
+  build:
+    runs-on: windows-latest # 使用微软官方的 Windows 云服务器
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive # 如果你的源码包含SDK子模块，自动下载
+
+    - name: Add MSBuild to PATH
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Build x86 (32-bit)
+      run: msbuild your_solution.sln /p:Configuration=Release /p:Platform=x86
+      # 请把上面的 your_solution.sln 替换为你仓库里实际的 .sln 文件名
+
+    - name: Build x64 (64-bit)
+      run: msbuild your_solution.sln /p:Configuration=Release /p:Platform=x64
+      # 如果你的源码不支持64位，可以删掉这三行
+
+    - name: Package Component
+      shell: powershell
+      run: |
+        # 创建一个临时目录用于打包
+        New-Item -ItemType Directory -Path .\build_output
+        
+        # 复制编译好的目标文件（请根据你项目的实际输出路径修改下面两行）
+        Copy-Item -Path ".\Release\foo_*.dll" -Destination .\build_output\
+        # 如果有64位，放进 x64 子文件夹
+        New-Item -ItemType Directory -Path .\build_output\x64
+        Copy-Item -Path ".\x64\Release\foo_*.dll" -Destination .\build_output\x64\
+        
+        # 压缩为 zip 并重命名为 .fb2k-component
+        Compress-Archive -Path .\build_output\* -DestinationPath .\my_plugin.fb2k-component
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: fb2k-component-file
+        path: .\my_plugin.fb2k-component
